@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Personal Budget Tracker</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    header {
+      background-color: #4caf50;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 24px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    input, select, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background-color: #4caf50;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .entry {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .entry span {
+      flex: 1;
+      text-align: center;
+    }
+
+    .summary {
+      background: #e8f5e9;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    .pdf-btn {
+      background: #2196f3;
+      margin-top: 20px;
+    }
+
+    .section-title {
+      margin-top: 30px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <header>Personal Budget Tracker</header>
+
+  <div class="container">
+    <h2>Add Income / Expense</h2>
+    <input type="date" id="date">
+    <select id="type">
+      <option value="income">Income</option>
+      <option value="expense">Expense</option>
+    </select>
+    <input type="text" id="description" placeholder="Description">
+    <input type="number" id="amount" placeholder="Amount">
+    <button onclick="addEntry()">Add</button>
+
+    <div class="section-title">Select Month</div>
+    <input type="month" id="monthFilter" onchange="renderEntries()">
+
+    <div id="report">
+      <h2>Monthly Summary</h2>
+      <div id="entries"></div>
+
+      <div class="summary">
+        <p>Total Income: ₹<span id="totalIncome">0</span></p>
+        <p>Total Expense: ₹<span id="totalExpense">0</span></p>
+        <p><strong>Balance: ₹<span id="balance">0</span></strong></p>
+      </div>
+    </div>
+
+    <button class="pdf-btn" onclick="downloadPDF()">Download PDF</button>
+  </div>
+
+  <script>
+    let data = JSON.parse(localStorage.getItem("budgetData") || "[]");
+
+    function addEntry() {
+      const date = document.getElementById("date").value;
+      const type = document.getElementById("type").value;
+      const description = document.getElementById("description").value;
+      const amount = parseFloat(document.getElementById("amount").value);
+
+      if (!date || !description || !amount) return alert("Fill all fields!");
+
+      data.push({ date, type, description, amount });
+      localStorage.setItem("budgetData", JSON.stringify(data));
+      renderEntries();
+    }
+
+    function renderEntries() {
+      const selectedMonth = document.getElementById("monthFilter").value;
+      const entriesDiv = document.getElementById("entries");
+      entriesDiv.innerHTML = "";
+
+      let income = 0, expense = 0;
+
+      data.filter(entry => {
+        return selectedMonth === "" || entry.date.startsWith(selectedMonth);
+      }).forEach(entry => {
+        const div = document.createElement("div");
+        div.className = "entry";
+        div.innerHTML = `
+          <span>${entry.date}</span>
+          <span>${entry.type}</span>
+          <span>${entry.description}</span>
+          <span>₹${entry.amount}</span>
+        `;
+        entriesDiv.appendChild(div);
+
+        if (entry.type === "income") income += entry.amount;
+        else expense += entry.amount;
+      });
+
+      document.getElementById("totalIncome").innerText = income;
+      document.getElementById("totalExpense").innerText = expense;
+      document.getElementById("balance").innerText = income - expense;
+    }
+
+    function downloadPDF() {
+      const report = document.getElementById("report");
+      const opt = {
+        margin: 0.5,
+        filename: 'Monthly_Budget_Report.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+      html2pdf().from(report).set(opt).save();
+    }
+
+    renderEntries();
+  </script>
+</body>
+</html>
